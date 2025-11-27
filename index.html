@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carga Laboral Docente Universitaria (ARG)</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        /* Configuración de fuente Inter para todo el dashboard */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+        /* Estilos específicos para la navegación de pestañas */
+        .tab-button.active {
+            border-bottom: 3px solid #10b981; /* esmeralda-500 */
+            color: #10b981;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-10">
+
+        <!-- TÍTULO Y FILTROS -->
+        <header class="mb-8 border-b pb-4">
+            <h1 class="text-3xl font-bold text-gray-800">Carga Laboral Docente (Argentina)</h1>
+            <p class="text-gray-500 mt-1">Análisis interactivo de la distribución de responsabilidades por Dedicación.</p>
+
+            <!-- Contenedor de Filtros -->
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Filtro de Facultad/Departamento -->
+                <div class="relative">
+                    <label for="filter-departamento" class="block text-sm font-medium text-gray-700">Facultad/Departamento</label>
+                    <select id="filter-departamento" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+
+                <!-- Filtro de DEDICACIÓN (Término argentino clave) -->
+                <div class="relative">
+                    <label for="filter-dedicacion" class="block text-sm font-medium text-gray-700">Dedicación</label>
+                    <select id="filter-dedicacion" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="todos">Todas</option>
+                        <option value="exclusiva">Exclusiva</option>
+                        <option value="semiexclusiva">Semiexclusiva</option>
+                        <option value="simple">Simple</option>
+                    </select>
+                </div>
+
+                <!-- Filtro de Docente Específico -->
+                <div class="relative">
+                    <label for="filter-docente" class="block text-sm font-medium text-gray-700">Docente</label>
+                    <select id="filter-docente" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="todos">Todos los docentes</option>
+                    </select>
+                </div>
+
+                <!-- Filtro de Período -->
+                <div class="relative">
+                    <label for="filter-periodo" class="block text-sm font-medium text-gray-700">Período</label>
+                    <select id="filter-periodo" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="2024-2">2024 - Segundo Cuatrimestre</option>
+                        <option value="2024-1">2024 - Primer Cuatrimestre</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- NAVEGACIÓN DE PESTAÑAS (SECCIONES) -->
+        <nav class="border-b border-gray-200 mb-6">
+            <div class="flex space-x-4 overflow-x-auto">
+                <button data-tab="resumen" class="tab-button active py-2 px-4 text-gray-500 hover:text-emerald-500 whitespace-nowrap transition duration-150">
+                    I. Resumen Ejecutivo
+                </button>
+                <button data-tab="docencia" class="tab-button py-2 px-4 text-gray-500 hover:text-emerald-500 whitespace-nowrap transition duration-150">
+                    II. Docencia y Evaluación
+                </button>
+                <button data-tab="gestion" class="tab-button py-2 px-4 text-gray-500 hover:text-emerald-500 whitespace-nowrap transition duration-150">
+                    III. Servicio y Gestión
+                </button>
+            </div>
+        </nav>
+
+        <!-- CONTENIDO DE LAS PESTAÑAS -->
+        <main id="dashboard-content">
+
+            <!-- PESTAÑA I: RESUMEN EJECUTIVO -->
+            <section id="tab-resumen" class="tab-content">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">Resumen General de Carga</h2>
+                
+                <!-- Tarjetas de Indicadores Clave -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Tarjeta 1: Ratio A/D -->
+                    <div class="bg-gray-50 p-5 rounded-xl shadow-lg border-l-4 border-emerald-500">
+                        <p class="text-sm font-medium text-gray-500">Ratio Alumnos/Docente</p>
+                        <p id="kpi-ratio-ad" class="text-3xl font-bold text-gray-900 mt-1">--</p>
+                        <p class="text-xs text-gray-400 mt-1">Promedio de alumnos por docente</p>
+                    </div>
+                    <!-- Tarjeta 2: Total Evaluaciones -->
+                    <div class="bg-gray-50 p-5 rounded-xl shadow-lg border-l-4 border-blue-500">
+                        <p class="text-sm font-medium text-gray-500">Evaluaciones Corregidas</p>
+                        <p id="kpi-evaluaciones" class="text-3xl font-bold text-gray-900 mt-1">--</p>
+                        <p class="text-xs text-gray-400 mt-1">Total en el período</p>
+                    </div>
+                    <!-- Tarjeta 3: Horas por Dedicación (Nuevo KPI) -->
+                    <div class="bg-gray-50 p-5 rounded-xl shadow-lg border-l-4 border-yellow-500">
+                        <p class="text-sm font-medium text-gray-500">Horas Lectivas / Dedicación</p>
+                        <p id="kpi-dedicacion-ratio" class="text-3xl font-bold text-gray-900 mt-1">--</p>
+                        <p class="text-xs text-gray-400 mt-1">Horas en aula por punto de dedicación (Simp=1, Semi=2, Exc=4)</p>
+                    </div>
+                    <!-- Tarjeta 4: Total Reuniones Gestión -->
+                    <div class="bg-gray-50 p-5 rounded-xl shadow-lg border-l-4 border-red-500">
+                        <p class="text-sm font-medium text-gray-500">Reuniones de Gestión</p>
+                        <p id="kpi-gestion" class="text-3xl font-bold text-gray-900 mt-1">--</p>
+                        <p class="text-xs text-gray-400 mt-1">Total de participación en comités/juntas</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Gráfico 1: Carga Ponderada (Doughnut Chart) -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border">
+                        <h3 class="text-lg font-semibold mb-4">Carga Ponderada Promedio (Según Dedicación)</h3>
+                        <div class="h-64 flex justify-center items-center">
+                            <canvas id="chart-doughnut"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico 2: Ratio A/D por Facultad (Bar Chart) -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border">
+                        <h3 class="text-lg font-semibold mb-4">Ratio Alumnos/Docente por Facultad</h3>
+                        <div class="h-64">
+                            <canvas id="chart-bar-ratio"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PESTAÑA II: DOCENCIA Y EVALUACIÓN (Oculta por defecto) -->
+            <section id="tab-docencia" class="tab-content hidden">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">Análisis Detallado: Docencia y Evaluación</h2>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Gráfico 3: Distribución de Evaluaciones -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border">
+                        <h3 class="text-lg font-semibold mb-4">Distribución de Evaluaciones Corregidas (Por Docente)</h3>
+                        <div class="h-64">
+                            <canvas id="chart-evaluaciones-bar"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico 4: Evolución de Tutorías -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border">
+                        <h3 class="text-lg font-semibold mb-4">Tendencia de Tutorías y Reuniones de Alumnos (Mensual)</h3>
+                        <div class="h-64">
+                            <canvas id="chart-tutorias-line"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PESTAÑA III: SERVICIO Y GESTIÓN (Oculta por defecto) -->
+            <section id="tab-gestion" class="tab-content hidden">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">Análisis Detallado: Servicio y Gestión</h2>
+
+                <!-- Mapa de Calor (Simulado con tabla) -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border">
+                    <h3 class="text-lg font-semibold mb-4">Carga de Gestión y Servicio (Comparación Interfacultades)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facultad</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reuniones de Gestión (Promedio)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tutorías Registradas (Promedio)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas Lectivas (Promedio)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="heatmap-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Datos cargados por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // --- 1. DEFINICIÓN DE DATOS SIMULADOS (Contexto Argentino: Dedicaciones y Facultades) ---
+        
+        // Mapeo de Dedicación a Factor de Ponderación (Simple=10h, Semiexclusiva=20h, Exclusiva=40h)
+        const DEDICACION_FACTOR = {
+            'simple': 1, // 10 horas semanales
+            'semiexclusiva': 2, // 20 horas semanales
+            'exclusiva': 4  // 40 horas semanales
+        };
+
+        const MOCK_CARGA_DATA = [
+            // Facultad de Ingeniería
+            { docente_id: 'D001', nombre: 'Prof. Ana Gómez', departamento: 'F. Ingeniería', dedicacion: 'exclusiva', categoria: 'Titular', alumnos_totales: 150, evaluaciones_corregidas: 450, tutorias_registradas: 30, reuniones_gestion: 10, horas_lectivas: 12 },
+            { docente_id: 'D002', nombre: 'Prof. Juan Pérez', departamento: 'F. Ingeniería', dedicacion: 'semiexclusiva', categoria: 'Adjunto', alumnos_totales: 80, evaluaciones_corregidas: 200, tutorias_registradas: 15, reuniones_gestion: 8, horas_lectivas: 8 },
+            { docente_id: 'D003', nombre: 'JTP Luisa López', departamento: 'F. Ingeniería', dedicacion: 'simple', categoria: 'JTP', alumnos_totales: 220, evaluaciones_corregidas: 600, tutorias_registradas: 50, reuniones_gestion: 1, horas_lectivas: 16 },
+            
+            // Facultad de Ciencias Sociales
+            { docente_id: 'D004', nombre: 'Prof. Mario Diaz', departamento: 'F. Cs. Sociales', dedicacion: 'exclusiva', categoria: 'Titular', alumnos_totales: 60, evaluaciones_corregidas: 180, tutorias_registradas: 5, reuniones_gestion: 25, horas_lectivas: 6 },
+            { docente_id: 'D005', nombre: 'Prof. Elena Ruiz', departamento: 'F. Cs. Sociales', dedicacion: 'simple', categoria: 'Adjunto', alumnos_totales: 110, evaluaciones_corregidas: 350, tutorias_registradas: 40, reuniones_gestion: 5, horas_lectivas: 10 },
+            
+            // Facultad de Ciencias Exactas y Naturales (FCEN)
+            { docente_id: 'D006', nombre: 'Prof. Carlos Vega', departamento: 'F. Exactas', dedicacion: 'exclusiva', categoria: 'Titular', alumnos_totales: 300, evaluaciones_corregidas: 900, tutorias_registradas: 20, reuniones_gestion: 15, horas_lectivas: 14 },
+            { docente_id: 'D007', nombre: 'Prof. Sofia Mora', departamento: 'F. Exactas', dedicacion: 'semiexclusiva', categoria: 'Adjunto', alumnos_totales: 180, evaluaciones_corregidas: 500, tutorias_registradas: 35, reuniones_gestion: 6, horas_lectivas: 11 },
+        ];
+
+        // Distribución ponderada (Docente con Dedicación Exclusiva)
+        const CARGA_PONDERADA_ESTRUCTURA = {
+            'Docencia (Aulas y Soporte)': 40,
+            'Evaluación y Preparación': 25,
+            'Servicio, Gestión y Extensión': 15,
+            'Investigación y Desarrollo': 20
+        };
+
+        // --- 2. GESTIÓN DE FILTROS Y ESTADO ---
+
+        const filterDepartamento = document.getElementById('filter-departamento');
+        const filterDedicacion = document.getElementById('filter-dedicacion'); // Nuevo ID de filtro
+        const filterDocente = document.getElementById('filter-docente');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        let currentData = MOCK_CARGA_DATA;
+
+        // Función para inicializar los filtros de Facultad y Docente
+        function initializeFilters() {
+            // Llenar filtro de Facultades
+            const departamentos = [...new Set(MOCK_CARGA_DATA.map(d => d.departamento))];
+            departamentos.forEach(dep => {
+                const option = document.createElement('option');
+                option.value = dep;
+                option.textContent = dep;
+                filterDepartamento.appendChild(option);
+            });
+
+            // Llenar filtro de Docentes
+            MOCK_CARGA_DATA.forEach(docente => {
+                const option = document.createElement('option');
+                option.value = docente.docente_id;
+                option.textContent = docente.nombre;
+                filterDocente.appendChild(option);
+            });
+
+            // Asignar listeners a los filtros
+            [filterDepartamento, filterDedicacion, filterDocente, document.getElementById('filter-periodo')].forEach(filter => {
+                filter.addEventListener('change', applyFilters);
+            });
+        }
+
+        // Función principal para aplicar los filtros y recalcular la data
+        function applyFilters() {
+            const selectedDep = filterDepartamento.value;
+            const selectedDedicacion = filterDedicacion.value;
+            const selectedDocId = filterDocente.value;
+            
+            // 1. Filtrar los datos
+            currentData = MOCK_CARGA_DATA.filter(d => {
+                const matchesDep = selectedDep === 'todos' || d.departamento === selectedDep;
+                const matchesDedicacion = selectedDedicacion === 'todos' || d.dedicacion === selectedDedicacion;
+                const matchesDoc = selectedDocId === 'todos' || d.docente_id === selectedDocId;
+                return matchesDep && matchesDedicacion && matchesDoc;
+            });
+            
+            // 2. Actualizar el Dashboard con los datos filtrados
+            updateDashboard();
+        }
+
+        // --- 3. LÓGICA DE VISUALIZACIÓN DE PESTAÑAS (Misma que la anterior) ---
+
+        function setupTabs() {
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.getAttribute('data-tab');
+                    
+                    // Ocultar todos los contenidos y desactivar botones
+                    tabContents.forEach(content => content.classList.add('hidden'));
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+
+                    // Mostrar el contenido y activar el botón
+                    document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+                    button.classList.add('active');
+                    
+                    // Asegurar que los gráficos en la nueva pestaña se redibujen si es necesario
+                    if (window.myCharts[tabId]) {
+                        window.myCharts[tabId].forEach(chart => chart.update());
+                    }
+                });
+            });
+        }
+        
+        // --- 4. CÁLCULO DE MÉTRICAS GLOBALES (Añadido KPI de Dedicación) ---
+
+        function calculateKpis(data) {
+            if (data.length === 0) return { ratioAD: 0, totalEvaluaciones: 0, totalTutorias: 0, totalGestion: 0, dedicacionRatio: 0 };
+
+            const totalAlumnos = data.reduce((sum, d) => sum + d.alumnos_totales, 0);
+            const totalEvaluaciones = data.reduce((sum, d) => sum + d.evaluaciones_corregidas, 0);
+            const totalGestion = data.reduce((sum, d) => sum + d.reuniones_gestion, 0);
+            const totalHorasLectivas = data.reduce((sum, d) => sum + d.horas_lectivas, 0);
+            
+            // Cálculo del "esfuerzo" total basado en la dedicación
+            const totalDedicacionFactor = data.reduce((sum, d) => sum + DEDICACION_FACTOR[d.dedicacion], 0);
+
+            const ratioAD = (totalAlumnos / data.length).toFixed(1);
+            
+            // Nuevo KPI: Horas Lectivas por Dedicación Ponderada
+            const dedicacionRatio = (totalDedicacionFactor > 0) ? (totalHorasLectivas / totalDedicacionFactor).toFixed(1) : 0;
+            
+            return { ratioAD, totalEvaluaciones, totalGestion, dedicacionRatio };
+        }
+
+        // --- 5. LÓGICA DE GRÁFICOS (Chart.js) (Misma que la anterior, solo se ajustan etiquetas) ---
+
+        window.myCharts = {}; // Objeto global para almacenar instancias de gráficos
+
+        function initCharts() {
+            // Inicializar todos los gráficos vacíos o con datos base
+            window.myCharts.resumen = [];
+            window.myCharts.docencia = [];
+            window.myCharts.gestion = [];
+
+            // Gráfico 1: Carga Ponderada (Doughnut Chart)
+            const ctxDoughnut = document.getElementById('chart-doughnut').getContext('2d');
+            window.myCharts.resumen.push(new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(CARGA_PONDERADA_ESTRUCTURA),
+                    datasets: [{
+                        data: Object.values(CARGA_PONDERADA_ESTRUCTURA),
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right' } }
+                }
+            }));
+            
+            // Gráfico 2: Ratio A/D por Facultad (Bar Chart)
+            const ctxBarRatio = document.getElementById('chart-bar-ratio').getContext('2d');
+            window.myCharts.resumen.push(new Chart(ctxBarRatio, {
+                type: 'bar',
+                data: {
+                    labels: [], // Se llenará con departamentos
+                    datasets: [{
+                        label: 'Ratio Alumnos/Docente',
+                        data: [],
+                        backgroundColor: '#10b981',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            }));
+
+            // Gráfico 3: Distribución de Evaluaciones (Bar Chart)
+            const ctxEvalBar = document.getElementById('chart-evaluaciones-bar').getContext('2d');
+            window.myCharts.docencia.push(new Chart(ctxEvalBar, {
+                type: 'bar',
+                data: {
+                    labels: [], // Se llenará con docentes
+                    datasets: [{
+                        label: 'Evaluaciones Corregidas',
+                        data: [],
+                        backgroundColor: '#3b82f6',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Hace el gráfico horizontal
+                    scales: { x: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
+            }));
+
+            // Gráfico 4: Tendencia de Tutorías (Line Chart)
+            const ctxTutoriasLine = document.getElementById('chart-tutorias-line').getContext('2d');
+            window.myCharts.docencia.push(new Chart(ctxTutoriasLine, {
+                type: 'line',
+                data: {
+                    labels: ['Mar', 'Abr', 'May', 'Jun', 'Jul'], // Simulación meses
+                    datasets: [{
+                        label: 'Tutorías/Reuniones Registradas',
+                        data: [15, 22, 45, 30, 10], // Datos simulados
+                        borderColor: '#f59e0b',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            }));
+        }
+
+        // Función para actualizar los gráficos con los datos filtrados
+        function updateCharts(data) {
+            // --- Actualizar Resumen (Pestaña I) ---
+            
+            // 1. Calcular Ratio A/D por Facultad
+            const depRatios = data.reduce((acc, d) => {
+                acc[d.departamento] = acc[d.departamento] || { totalAlumnos: 0, totalDocentes: 0 };
+                acc[d.departamento].totalAlumnos += d.alumnos_totales;
+                acc[d.departamento].totalDocentes++; 
+                return acc;
+            }, {});
+
+            const depLabels = Object.keys(depRatios);
+            const depData = depLabels.map(dep => (depRatios[dep].totalAlumnos / depRatios[dep].totalDocentes).toFixed(1));
+
+            const ratioBarChart = window.myCharts.resumen[1];
+            ratioBarChart.data.labels = depLabels;
+            ratioBarChart.data.datasets[0].data = depData;
+            ratioBarChart.update();
+
+            // --- Actualizar Docencia/Evaluación (Pestaña II) ---
+
+            // 2. Distribución de Evaluaciones por Docente (usando data filtrada)
+            const evalBarChart = window.myCharts.docencia[0];
+            evalBarChart.data.labels = data.map(d => d.nombre);
+            evalBarChart.data.datasets[0].data = data.map(d => d.evaluaciones_corregidas);
+            evalBarChart.update();
+
+            // Los otros gráficos de la Pestaña II y Pestaña III no se actualizan en este mock, pero su estructura de actualización sería similar.
+        }
+
+        // --- 6. ACTUALIZACIÓN DEL DASHBOARD COMPLETO ---
+
+        function updateDashboard() {
+            // Recalcular KPIs
+            const kpis = calculateKpis(currentData);
+
+            // Actualizar Tarjetas KPI
+            document.getElementById('kpi-ratio-ad').textContent = kpis.ratioAD;
+            document.getElementById('kpi-evaluaciones').textContent = kpis.totalEvaluaciones.toLocaleString('es');
+            // Nuevo KPI
+            document.getElementById('kpi-dedicacion-ratio').textContent = kpis.dedicacionRatio;
+            document.getElementById('kpi-gestion').textContent = kpis.totalGestion.toLocaleString('es');
+            
+            // Actualizar Gráficos
+            updateCharts(currentData);
+
+            // Actualizar Tabla de Gestión (simulación de Mapa de Calor)
+            updateGestionTable(currentData);
+        }
+
+        function updateGestionTable(data) {
+            const tbody = document.getElementById('heatmap-table-body');
+            tbody.innerHTML = '';
+            
+            // Calcular promedios por Facultad para la tabla de gestión
+            const depStats = data.reduce((acc, d) => {
+                acc[d.departamento] = acc[d.departamento] || { totalReuniones: 0, totalHoras: 0, totalDocentes: 0, totalTutorias: 0 };
+                acc[d.departamento].totalReuniones += d.reuniones_gestion;
+                acc[d.departamento].totalHoras += d.horas_lectivas;
+                acc[d.departamento].totalTutorias += d.tutorias_registradas;
+                acc[d.departamento].totalDocentes++;
+                return acc;
+            }, {});
+
+            Object.keys(depStats).forEach(dep => {
+                const stats = depStats[dep];
+                const avgReuniones = (stats.totalReuniones / stats.totalDocentes).toFixed(1);
+                const avgTutorias = (stats.totalTutorias / stats.totalDocentes).toFixed(1);
+                const avgHoras = (stats.totalHoras / stats.totalDocentes).toFixed(1);
+
+                // Función para obtener color de Heatmap (Simulación: más reuniones = más rojo)
+                const getColor = (value) => {
+                    if (value > 15) return 'bg-red-200';
+                    if (value > 8) return 'bg-yellow-100';
+                    return 'bg-green-50';
+                };
+                
+                const row = document.createElement('tr');
+                row.className = getColor(avgReuniones);
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${dep}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${avgReuniones}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${avgTutorias}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${avgHoras} hrs</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // --- 7. INICIALIZACIÓN ---
+
+        window.onload = function() {
+            initializeFilters();
+            setupTabs();
+            initCharts();
+            applyFilters(); // Cargar datos iniciales
+        };
+
+    </script>
+</body>
+</html>
